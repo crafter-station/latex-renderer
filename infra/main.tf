@@ -54,9 +54,9 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "render" {
+resource "aws_apigatewayv2_route" "all" {
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = "POST /render"
+  route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
