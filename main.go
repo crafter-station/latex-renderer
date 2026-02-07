@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -11,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+//go:embed static/css/LaTeXML.css
+var latexmlCSS string
 
 func main() {
 	apiKey := os.Getenv("API_KEY")
@@ -79,7 +84,8 @@ func main() {
 			return
 		}
 
-		c.Data(http.StatusOK, "text/html; charset=utf-8", html)
+		styled := fmt.Sprintf("<style>\n%s\n</style>\n%s", latexmlCSS, html)
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(styled))
 	})
 
 	r.Run(":8080")
