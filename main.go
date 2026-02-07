@@ -18,6 +18,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/render", middleware.BearerAuth(apiKey), handler.Render)
+	r.POST("/render/pdf", middleware.BearerAuth(apiKey), handler.RenderPDF)
 
 	r.Run(":8080")
 }

@@ -5,15 +5,18 @@ API_KEY := test123
 PROFILE := iamadmin-general
 REGION  := us-east-1
 
-.PHONY: build run stop restart logs test test-remote clean deploy update destroy
+# --- Auto tag ---
+TAG := $(shell git rev-parse --short HEAD)
+
+.PHONY: build run stop restart logs test test-pdf test-remote clean deploy update destroy
 
 # ---- Local ----
 
 build:
-	docker build --provenance=false -t $(IMAGE) .
+	docker build --provenance=false -t $(IMAGE):$(TAG) .
 
 run:
-	docker run -d --name $(NAME) -p $(PORT):8080 -e API_KEY=$(API_KEY) $(IMAGE)
+	docker run -d --name $(NAME) -p $(PORT):8080 -e API_KEY=$(API_KEY) $(IMAGE):$(TAG)
 
 stop:
 	docker stop $(NAME) && docker rm $(NAME)
@@ -31,11 +34,18 @@ test:
 		-o output.html -w "\nHTTP %{http_code} - saved to output.html\n"
 	@cat output.html
 
+test-pdf:
+	@curl -s -X POST http://localhost:$(PORT)/render/pdf \
+		-H "Authorization: Bearer $(API_KEY)" \
+		-H "Content-Type: text/plain" \
+		--data-binary @test.tex \
+		-o output.pdf -w "\nHTTP %{http_code} - saved to output.pdf\n"
+
 clean:
 	-docker stop $(NAME) 2>/dev/null
 	-docker rm $(NAME) 2>/dev/null
 	docker rmi $(IMAGE)
-	-rm -f output.html
+	-rm -f output.html output.pdf
 
 test-remote:
 	$(eval API_URL := $(shell cd infra && terraform output -raw api_url))
@@ -46,39 +56,68 @@ test-remote:
 		-o output.html -w "\nHTTP %{http_code} - saved to output.html\n"
 	@cat output.html
 
+test-remote-pdf:
+	$(eval API_URL := $(shell cd infra && terraform output -raw api_url))
+	@curl -s -X POST $(API_URL)/render/pdf \
+		-H "Authorization: Bearer $(API_KEY)" \
+		-H "Content-Type: text/plain" \
+		--data-binary @test.tex \
+		-o output.pdf -w "\nHTTP %{http_code} - saved to output.pdf\n"
+
+
 # ---- AWS Deploy ----
 
 deploy:
-	@echo "== 1/4 Terraform init =="
+		@echo "== 1/4 Terraform init =="
 	cd infra && terraform init
+
 	@echo "== 2/4 Creating ECR repository =="
 	cd infra && terraform apply -target=aws_ecr_repository.this \
-		-var="api_key=$(API_KEY)" -var="image_uri=placeholder" -auto-approve
-	@echo "== 3/4 Pushing image to ECR =="
+		-var="api_key=$(API_KEY)" \
+		-var="image_uri=placeholder" \
+		-auto-approve
+
+	@echo "== 3/4 Build & push image =="
 	$(eval ECR_URL := $(shell cd infra && terraform output -raw ecr_repository_url))
+
+	docker build --provenance=false -t $(IMAGE):$(TAG) .
 	aws ecr get-login-password --region $(REGION) --profile $(PROFILE) \
 		| docker login --username AWS --password-stdin $(ECR_URL)
-	docker tag $(IMAGE):latest $(ECR_URL):latest
-	docker push $(ECR_URL):latest
+
+	docker tag $(IMAGE):$(TAG) $(ECR_URL):$(TAG)
+	docker push $(ECR_URL):$(TAG)
+
 	@echo "== 4/4 Deploying Lambda + API Gateway =="
 	cd infra && terraform apply \
-		-var="api_key=$(API_KEY)" -var="image_uri=$(ECR_URL):latest" -auto-approve
+		-var="api_key=$(API_KEY)" \
+		-var="image_uri=$(ECR_URL):$(TAG)" \
+		-auto-approve
+
 	@echo ""
-	@echo "Deployed! API URL:"
+	@echo "Deployed with image tag: $(TAG)"
 	@cd infra && terraform output api_url
 
 update:
 	$(eval ECR_URL := $(shell cd infra && terraform output -raw ecr_repository_url))
-	docker build --provenance=false -t $(IMAGE) .
+
+	docker build --provenance=false -t $(IMAGE):$(TAG) .
 	aws ecr get-login-password --region $(REGION) --profile $(PROFILE) \
 		| docker login --username AWS --password-stdin $(ECR_URL)
-	docker tag $(IMAGE):latest $(ECR_URL):latest
-	docker push $(ECR_URL):latest
-	aws lambda update-function-code --function-name $(IMAGE) \
-		--image-uri $(ECR_URL):latest --profile $(PROFILE) --no-cli-pager
-	@echo "Updated! Waiting for Lambda to be ready..."
-	@aws lambda wait function-updated --function-name $(IMAGE) --profile $(PROFILE)
-	@echo "Done."
+
+	docker tag $(IMAGE):$(TAG) $(ECR_URL):$(TAG)
+	docker push $(ECR_URL):$(TAG)
+
+	aws lambda update-function-code \
+		--function-name $(IMAGE) \
+		--image-uri $(ECR_URL):$(TAG) \
+		--profile $(PROFILE) \
+		--no-cli-pager
+
+	@aws lambda wait function-updated \
+		--function-name $(IMAGE) \
+		--profile $(PROFILE)
+
+	@echo "Updated Lambda to tag $(TAG)"
 
 destroy:
 	cd infra && terraform destroy \
