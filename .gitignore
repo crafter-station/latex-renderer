@@ -1,0 +1,68 @@
+# Local .terraform directory and modules
+.terraform/
+.terraform-dev/ # optional, if you use a separate dev directory
+
+# .tfstate files and backups
+*.tfstate
+*.tfstate.*
+# Optional: ignore the lock file if working solo, but include for team collaboration
+# .terraform.lock.hcl
+
+# Variable files that might contain sensitive data
+# Be mindful if you manage these files via version control as config
+*.tfvars
+*.tfvars.json
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Ignore override files as they are usually used for local development
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan files (if you use an explicit naming convention)
+# e.g., terraform plan -out=tfplan
+*tfplan*
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# Optional: ignore graph output files
+*.dot
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (especially if using older Go versions or specific tools)
+# vendor/ 
+
+# Optional: Environment specific files (e.g., editor settings)
+# Example for VS Code
+.vscode/
+
+# Example for IntelliJ IDEA (GoLand)
+.idea/
+/shelf/
+/workspace.xml
+/httpRequests/
+
+# Example for OS-specific files
+.DS_Store # macOS
+Thumbs.db # Windows
+
+.env
+output.html
