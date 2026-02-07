@@ -33,6 +33,7 @@ RUN apt update && apt install -y \
   texlive-latex-recommended \
   texlive-latex-extra \
   texlive-fonts-recommended \
+  texlive-publishers \
   && rm -rf /var/lib/apt/lists/*
 
 ENV C_INCLUDE_PATH=/usr/include/libxml2
