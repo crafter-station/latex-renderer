@@ -64,6 +64,13 @@ resource "aws_lambda_function" "this" {
 resource "aws_apigatewayv2_api" "this" {
   name          = "latex-renderer"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = ["*"]
+    allow_methods = ["POST", "OPTIONS"]
+    allow_headers = ["Authorization", "Content-Type"]
+    max_age       = 86400
+  }
 }
 
 resource "aws_apigatewayv2_integration" "lambda" {
