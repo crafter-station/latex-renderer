@@ -3,6 +3,25 @@ resource "aws_ecr_repository" "this" {
   force_delete = true
 }
 
+resource "aws_ecr_lifecycle_policy" "keep_last" {
+  repository = aws_ecr_repository.this.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep only the last image"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 1
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}
+
 # --- Lambda execution role ---
 
 resource "aws_iam_role" "lambda" {
@@ -72,4 +91,35 @@ resource "aws_lambda_permission" "apigw" {
   function_name = aws_lambda_function.this.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+}
+
+# --- Billing alarm ---
+
+resource "aws_sns_topic" "billing" {
+  name = "latex-renderer-billing-alarm"
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.billing.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+resource "aws_cloudwatch_metric_alarm" "billing" {
+  alarm_name          = "latex-renderer-billing"
+  alarm_description   = "Triggers when estimated monthly charges exceed $${var.billing_threshold}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "EstimatedCharges"
+  namespace           = "AWS/Billing"
+  period              = 21600 # 6 hours (billing metrics update ~every 6h)
+  statistic           = "Maximum"
+  threshold           = var.billing_threshold
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    Currency = "USD"
+  }
+
+  alarm_actions = [aws_sns_topic.billing.arn]
 }
