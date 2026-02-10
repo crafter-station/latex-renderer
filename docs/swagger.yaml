@@ -1,0 +1,102 @@
+definitions:
+  handler.ErrorResponse:
+    properties:
+      detail:
+        example: Undefined control sequence
+        type: string
+      error:
+        example: latex render failed
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for converting LaTeX documents to HTML and PDF.
+  title: LaTeX Renderer API
+  version: "1.0"
+paths:
+  /render:
+    post:
+      consumes:
+      - text/plain
+      description: Converts a full LaTeX document into an HTML fragment with embedded
+        LaTeXML CSS and Presentation MathML.
+      parameters:
+      - description: Bearer API key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: LaTeX source code
+        in: body
+        name: body
+        required: true
+        schema:
+          type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML with embedded CSS
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Render LaTeX to HTML
+      tags:
+      - render
+  /render/pdf:
+    post:
+      consumes:
+      - text/plain
+      description: Compiles a full LaTeX document into a PDF using pdflatex.
+      parameters:
+      - description: Bearer API key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: LaTeX source code
+        in: body
+        name: body
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDF document
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Render LaTeX to PDF
+      tags:
+      - render
+securityDefinitions:
+  BearerAuth:
+    description: Bearer token (e.g. "Bearer your-api-key")
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

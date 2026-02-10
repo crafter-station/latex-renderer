@@ -12,10 +12,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// RenderPDF converts LaTeX source to a PDF document.
+//
+//	@Summary		Render LaTeX to PDF
+//	@Description	Compiles a full LaTeX document into a PDF using pdflatex.
+//	@Tags			render
+//	@Accept			text/plain
+//	@Produce		application/pdf
+//	@Param			Authorization	header	string	true	"Bearer API key"
+//	@Param			body			body	string	true	"LaTeX source code"
+//	@Success		200	{file}		binary	"PDF document"
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/render/pdf [post]
 func RenderPDF(c *gin.Context) {
 	latex, err := c.GetRawData()
 	if err != nil || len(latex) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "empty body"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "empty body"})
 		return
 	}
 
@@ -25,7 +39,7 @@ func RenderPDF(c *gin.Context) {
 	pdfFile := filepath.Join(tmpDir, id+".pdf")
 
 	if err := os.WriteFile(texFile, latex, 0600); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot write temp file"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "cannot write temp file"})
 		return
 	}
 	defer os.Remove(texFile)
@@ -53,16 +67,16 @@ func RenderPDF(c *gin.Context) {
 				log = extractTexErrors(string(logBytes))
 			}
 		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  "pdf render failed",
-			"detail": log,
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:  "pdf render failed",
+			Detail: log,
 		})
 		return
 	}
 
 	pdf, err := os.ReadFile(pdfFile)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot read output"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "cannot read output"})
 		return
 	}
 
