@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+typings/
+
+# Environment files
+.env
+.env.*
+!.env.example # Allow an example file to be committed
+
+# Build output directories
+/build/
+/dist/
+/target/
+/output/
+
+# TypeScript temporary files
+*.js        # Ignore all generated JavaScript files
+!*.config.js # Except config files, which are often JS
+*.js.map    # Ignore all source maps
+*.ts.map
+*.swp       # Vim swap files
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and Editor files
+.DS_Store # macOS specific
+.vscode/ # VS Code specific config
+.idea/ # IntelliJ specific config
+*.suo    # Visual Studio specific
+*.user   # Visual Studio specific
+*.aps    # Visual Studio specific
+
+# Coverage directory used by testing tools
+coverage/
+
+# Next.js
+.next/
+
+# SvelteKit
+.svelte-kit/

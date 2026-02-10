@@ -1,0 +1,13 @@
+root = true
+
+[*]
+# Default rules for all files
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+end_of_line = lf
+
+[*.{ts,mts,cts,tsx}]
+# TypeScript-specific rules
+indent_style = space
+indent_size = 2
