@@ -1,6 +1,9 @@
 infra/
+sdk/
+tests/
 .git/
 README.md
 Makefile
 *.tex
 *.html
+*.pdf
