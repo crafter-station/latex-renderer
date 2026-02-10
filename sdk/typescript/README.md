@@ -79,6 +79,39 @@ const html = await client.renderHTML(latex, { signal: controller.signal });
 | `baseUrl` | `string` | `http://localhost:8080`  | API base URL            |
 | `timeout` | `number` | `30000`                  | Request timeout (ms)    |
 
+## Publishing to npm
+
+### First time setup
+
+1. Create a **Granular Access Token** at https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+   - Click "Generate New Token" > "Granular Access Token"
+   - Set permissions: **Read and Write** for packages
+2. Login with the token:
+
+```bash
+npm login
+```
+
+Or set it directly:
+
+```bash
+npm config set //registry.npmjs.org/:_authToken=YOUR_TOKEN
+```
+
+### First publish
+
+```bash
+npm run publish:first
+```
+
+### Update and republish
+
+```bash
+npm run publish:patch   # 1.0.0 → 1.0.1 (bug fixes)
+npm run publish:minor   # 1.0.0 → 1.1.0 (new features)
+npm run publish:major   # 1.0.0 → 2.0.0 (breaking changes)
+```
+
 ## Requirements
 
 Node.js >= 18.0.0
