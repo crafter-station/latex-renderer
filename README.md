@@ -1,11 +1,11 @@
 # LaTeX Renderer
 
-API HTTP que convierte LaTeX a HTML con MathML usando [LaTeXML](https://math.nist.gov/~BMiller/LaTeXML/). Desplegada como Lambda container en AWS.
+API HTTP que convierte LaTeX a HTML (con MathML) y PDF. Desplegada como Lambda container en AWS.
 
 ## Arquitectura
 
 ```
-Cliente  -->  API Gateway (HTTP API)  -->  Lambda (container)  -->  latexmlc
+Cliente  -->  API Gateway (HTTP API)  -->  Lambda (container)  -->  latexmlc / pdflatex
                                               |
                                          ECR (imagen Docker)
 ```
@@ -22,7 +22,11 @@ Cliente  -->  API Gateway (HTTP API)  -->  Lambda (container)  -->  latexmlc
 - Make
 - Un perfil de AWS configurado (`aws configure --profile iamadmin-general`)
 
-## Uso de la API
+## Endpoints
+
+### `POST /render` — LaTeX a HTML
+
+Devuelve HTML con MathML (Presentation MathML) y CSS embebido.
 
 ```bash
 curl -X POST https://TU_URL/render \
@@ -31,7 +35,37 @@ curl -X POST https://TU_URL/render \
   --data-binary @documento.tex
 ```
 
-El body es el contenido `.tex` completo. Devuelve HTML con MathML (Presentation MathML).
+### `POST /render/pdf` — LaTeX a PDF
+
+Devuelve el PDF compilado como binario (`application/pdf`).
+
+```bash
+curl -X POST https://TU_URL/render/pdf \
+  -H "Authorization: Bearer TU_API_KEY" \
+  -H "Content-Type: text/plain" \
+  --data-binary @documento.tex \
+  -o output.pdf
+```
+
+El body en ambos casos es el contenido `.tex` completo.
+
+## TypeScript SDK
+
+Disponible en [`sdk/typescript/`](sdk/typescript/).
+
+```typescript
+import { LatexRenderer } from "latex-renderer-sdk";
+
+const client = new LatexRenderer({
+  apiKey: "your-api-key",
+  baseUrl: "https://your-api-url.com",
+});
+
+const html = await client.renderHTML(latexString);
+const pdf = await client.renderPDF(latexString); // Uint8Array
+```
+
+Ver [SDK README](sdk/typescript/README.md) para mas detalles.
 
 ## Desarrollo local
 
@@ -42,8 +76,11 @@ make build
 # Levantar el container (puerto 8080, API_KEY=test123)
 make run
 
-# Probar con test.tex
+# Probar render HTML
 make test
+
+# Probar render PDF
+make test-pdf
 
 # Ver logs
 make logs
@@ -61,10 +98,18 @@ make clean
 Para probar manualmente:
 
 ```bash
+# HTML
 curl -X POST http://localhost:8080/render \
   -H "Authorization: Bearer test123" \
   -H "Content-Type: text/plain" \
   -d '\documentclass{article}\begin{document}Hello \$E=mc^2\$\end{document}'
+
+# PDF
+curl -X POST http://localhost:8080/render/pdf \
+  -H "Authorization: Bearer test123" \
+  -H "Content-Type: text/plain" \
+  --data-binary @test.tex \
+  -o output.pdf
 ```
 
 ## Deploy a AWS (primera vez)
@@ -81,7 +126,7 @@ Esto ejecuta todo automaticamente:
 1. `terraform init`
 2. Crea el repositorio ECR
 3. Pushea la imagen Docker a ECR
-4. Crea Lambda + API Gateway
+4. Crea Lambda + API Gateway + alarma de billing
 
 Al final muestra la URL de la API.
 
@@ -95,6 +140,16 @@ make update
 
 Esto rebuild la imagen, la pushea a ECR, y actualiza la Lambda. No toca la infra de Terraform.
 
+## Probar en remoto
+
+```bash
+# HTML
+make test-remote
+
+# PDF
+make test-remote-pdf
+```
+
 ## Destruir todo (evitar gastos)
 
 ```bash
@@ -106,24 +161,49 @@ Esto elimina **todos** los recursos de AWS:
 - API Gateway
 - ECR repository (incluyendo las imagenes)
 - IAM roles
+- Alarmas de billing y SNS
 
 Despues de ejecutar `make destroy`, el costo en AWS es $0.
+
+## Tests de integracion
+
+Requieren el container local corriendo (`make run`):
+
+```bash
+cd tests && go test -v ./...
+```
 
 ## Estructura del proyecto
 
 ```
 .
-├── main.go              # Servidor HTTP (Go + Gin)
-├── go.mod / go.sum      # Dependencias Go
-├── Dockerfile           # Imagen con LaTeXML + Lambda Web Adapter
+├── main.go                          # Servidor HTTP (Go + Gin)
+├── go.mod / go.sum                  # Dependencias Go
+├── Dockerfile                       # Imagen con LaTeXML + Lambda Web Adapter
 ├── .dockerignore
-├── Makefile             # Comandos de build, deploy, destroy
-├── test.tex             # Documento LaTeX de prueba
+├── Makefile                         # Comandos de build, deploy, destroy
+├── test.tex                         # Documento LaTeX de prueba
+├── internal/
+│   ├── handler/
+│   │   ├── render.go                # Handler POST /render (HTML)
+│   │   ├── render_pdf.go            # Handler POST /render/pdf (PDF)
+│   │   └── static/css/LaTeXML.css   # CSS embebido en HTML output
+│   └── middleware/
+│       ├── auth.go                  # Bearer token auth
+│       └── cors.go                  # CORS middleware
+├── tests/
+│   ├── render_pdf_test.go           # Tests de integracion
+│   └── fixtures/                    # Archivos .tex para tests
+├── sdk/
+│   └── typescript/                  # TypeScript SDK
+│       ├── src/
+│       ├── package.json
+│       └── README.md
 └── infra/
-    ├── main.tf          # ECR + Lambda + API Gateway
-    ├── variables.tf     # region, api_key, image_uri
-    ├── versions.tf      # Provider AWS + perfil
-    └── outputs.tf       # api_url, ecr_repository_url
+    ├── main.tf                      # ECR + Lambda + API Gateway + Billing alarm
+    ├── variables.tf                 # region, api_key, image_uri, alert_email
+    ├── versions.tf                  # Provider AWS + perfil
+    └── outputs.tf                   # api_url, ecr_repository_url
 ```
 
 ## Variables del Makefile
