@@ -17,31 +17,44 @@ import (
 //	@Summary		Render LaTeX to PDF
 //	@Description	Compiles a full LaTeX document into a PDF using pdflatex.
 //	@Tags			render
-//	@Accept			text/plain
+//	@Accept			multipart/form-data
 //	@Produce		application/pdf
-//	@Param			Authorization	header	string	true	"Bearer API key"
-//	@Param			body			body	string	true	"LaTeX source code"
+//	@Param			Authorization	header		string	true	"Bearer API key"
+//	@Param			content         formData	string	true	"LaTeX source code"
+//	@Param			images          formData	string	false	"JSON map of images. Example: {\"image.jpg\":{\"url\":\"https://example.com/image.jpg\"}}"
 //	@Success		200	{file}		binary	"PDF document"
 //	@Failure		400	{object}	ErrorResponse
 //	@Failure		401	{object}	ErrorResponse
 //	@Failure		500	{object}	ErrorResponse
 //	@Router			/render/pdf [post]
 func RenderPDF(c *gin.Context) {
-	latex, err := c.GetRawData()
-	if err != nil || len(latex) == 0 {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "empty body"})
+	if err := c.Request.ParseMultipartForm(20 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid form"})
+		return
+	}
+
+	req, err := newRenderReqFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	id := uuid.NewString()
 	tmpDir := os.TempDir()
+
 	texFile := filepath.Join(tmpDir, id+".tex")
 	pdfFile := filepath.Join(tmpDir, id+".pdf")
 
-	if err := os.WriteFile(texFile, latex, 0600); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "cannot write temp file"})
+	if err := os.WriteFile(texFile, []byte(req.Content), 0600); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "cannot write tex file"})
 		return
 	}
+
+	if err := req.downloadImages(tmpDir); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
 	defer os.Remove(texFile)
 	defer os.Remove(pdfFile)
 	defer os.Remove(filepath.Join(tmpDir, id+".aux"))
@@ -83,6 +96,7 @@ func RenderPDF(c *gin.Context) {
 	c.Data(http.StatusOK, "application/pdf", pdf)
 }
 
+// extractTexErrors extracts LaTeX error lines starting with "!" from the compilation log.
 func extractTexErrors(log string) string {
 	var errors []string
 	for _, line := range strings.Split(log, "\n") {
