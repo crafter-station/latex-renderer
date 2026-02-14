@@ -1,0 +1,41 @@
+meta {
+  name: Render HTML
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base}}/render
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  content: '''
+    \documentclass{article}
+    
+    \usepackage{graphicx} % Para incluir imágenes
+    
+    \begin{document}
+    
+    \begin{center}
+        \includegraphics[width=\textwidth]{banner.jpg}
+    \end{center}
+    
+    Hello, World!
+    
+    \end{document}
+  '''
+  images: '''
+    {
+      "banner.jpg": {
+        "url": "https://dummyimage.com/600x400/f45/fff"
+      }
+    }
+  '''
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
