@@ -2,6 +2,8 @@
 
 TypeScript SDK for the LaTeX Renderer API.
 
+[Latex Renderer Source Code](https://github.com/crafter-station/latex-renderer)
+
 ## Installation
 
 ```bash

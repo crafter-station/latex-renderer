@@ -49,20 +49,26 @@ export class LatexRenderer {
 
   private async request(
     endpoint: string,
-    body: string,
+    latex: string,
     options?: RenderOptions,
   ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      const formData = new FormData();
+      formData.append("content", latex);
+
+      if (options?.images) {
+        formData.append("images", JSON.stringify(options.images));
+      }
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "text/plain",
         },
-        body,
+        body: formData,
         signal: options?.signal ?? controller.signal,
       });
 

@@ -6,4 +6,9 @@ export interface LatexRendererConfig {
 
 export interface RenderOptions {
   signal?: AbortSignal;
+  images?: {
+    [name: string]: {
+      url: string;
+    }
+  };
 }
