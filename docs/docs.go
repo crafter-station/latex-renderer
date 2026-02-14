@@ -19,7 +19,7 @@ const docTemplate = `{
             "post": {
                 "description": "Converts a full LaTeX document into an HTML fragment with embedded LaTeXML CSS and Presentation MathML.",
                 "consumes": [
-                    "text/plain"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "text/html"
@@ -37,13 +37,17 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "string",
                         "description": "LaTeX source code",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON map of images. Example: {\\",
+                        "name": "images",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -78,7 +82,7 @@ const docTemplate = `{
             "post": {
                 "description": "Compiles a full LaTeX document into a PDF using pdflatex.",
                 "consumes": [
-                    "text/plain"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/pdf"
@@ -96,13 +100,17 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "string",
                         "description": "LaTeX source code",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON map of images. Example: {\\",
+                        "name": "images",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

@@ -8,7 +8,7 @@ REGION  := us-east-1
 # --- Auto tag ---
 TAG := $(shell git rev-parse --short HEAD)
 
-.PHONY: build run stop restart logs test test-pdf test-remote clean deploy update destroy
+.PHONY: build run stop restart logs prod-url clean deploy update destroy
 
 # ---- Local ----
 
@@ -26,44 +26,14 @@ restart: stop run
 logs:
 	docker logs -f $(NAME)
 
-test:
-	@curl -s -X POST http://localhost:$(PORT)/render \
-		-H "Authorization: Bearer $(API_KEY)" \
-		-H "Content-Type: text/plain" \
-		--data-binary @test.tex \
-		-o output.html -w "\nHTTP %{http_code} - saved to output.html\n"
-	@cat output.html
-
-test-pdf:
-	@curl -s -X POST http://localhost:$(PORT)/render/pdf \
-		-H "Authorization: Bearer $(API_KEY)" \
-		-H "Content-Type: text/plain" \
-		--data-binary @test.tex \
-		-o output.pdf -w "\nHTTP %{http_code} - saved to output.pdf\n"
-
 clean:
 	-docker stop $(NAME) 2>/dev/null
 	-docker rm $(NAME) 2>/dev/null
 	docker rmi $(IMAGE)
 	-rm -f output.html output.pdf
 
-test-remote:
-	$(eval API_URL := $(shell cd infra && terraform output -raw api_url))
-	@curl -s -X POST $(API_URL)render \
-		-H "Authorization: Bearer $(API_KEY)" \
-		-H "Content-Type: text/plain" \
-		--data-binary @test.tex \
-		-o output.html -w "\nHTTP %{http_code} - saved to output.html\n"
-	@cat output.html
-
-test-remote-pdf:
-	$(eval API_URL := $(shell cd infra && terraform output -raw api_url))
-	@curl -s -X POST $(API_URL)/render/pdf \
-		-H "Authorization: Bearer $(API_KEY)" \
-		-H "Content-Type: text/plain" \
-		--data-binary @test.tex \
-		-o output.pdf -w "\nHTTP %{http_code} - saved to output.pdf\n"
-
+prod-url:
+	cd infra && terraform output -raw api_url
 
 # ---- AWS Deploy ----
 

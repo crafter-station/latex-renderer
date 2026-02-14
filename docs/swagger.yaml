@@ -17,7 +17,7 @@ paths:
   /render:
     post:
       consumes:
-      - text/plain
+      - multipart/form-data
       description: Converts a full LaTeX document into an HTML fragment with embedded
         LaTeXML CSS and Presentation MathML.
       parameters:
@@ -27,11 +27,14 @@ paths:
         required: true
         type: string
       - description: LaTeX source code
-        in: body
-        name: body
+        in: formData
+        name: content
         required: true
-        schema:
-          type: string
+        type: string
+      - description: 'JSON map of images. Example: {\'
+        in: formData
+        name: images
+        type: string
       produces:
       - text/html
       responses:
@@ -57,7 +60,7 @@ paths:
   /render/pdf:
     post:
       consumes:
-      - text/plain
+      - multipart/form-data
       description: Compiles a full LaTeX document into a PDF using pdflatex.
       parameters:
       - description: Bearer API key
@@ -66,11 +69,14 @@ paths:
         required: true
         type: string
       - description: LaTeX source code
-        in: body
-        name: body
+        in: formData
+        name: content
         required: true
-        schema:
-          type: string
+        type: string
+      - description: 'JSON map of images. Example: {\'
+        in: formData
+        name: images
+        type: string
       produces:
       - application/pdf
       responses:
